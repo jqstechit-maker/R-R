@@ -1,0 +1,6 @@
+{
+  "name": "R&R Móveis Planejados",
+  "description": "Portfólio profissional de móveis planejados sob medida com galeria de alta definição, consultor de design de interiores por Inteligência Artificial e integração com WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
