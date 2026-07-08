@@ -110,7 +110,7 @@ export default function ContactForm() {
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-display font-bold uppercase tracking-wide text-white">Showroom Principal</h4>
+                  <h4 className="text-sm font-display font-bold uppercase tracking-wide text-white">ENDEREÇO</h4>
                   <p className="text-sm text-white/70 mt-1 font-light">
                     {contact.address}
                   </p>

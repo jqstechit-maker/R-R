@@ -1125,7 +1125,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         rows={4}
                         value={heroHighlightsText}
                         onChange={(e) => setHeroHighlightsText(e.target.value)}
-                        placeholder="MDF de Alto Padrão de Dupla Face&#10;Garantia de 5 Anos de Fábrica&#10;Ferragens Importadas com Amortecimento&#10;Consultoria Exclusiva de Design e 3D"
+                        placeholder="MDF de Alto Padrão de Dupla Face&#10;Móveis com qualidade comprovada&#10;Ferragens Importadas com Amortecimento&#10;Consultoria Exclusiva de Design e 3D"
                         className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3 focus:outline-none focus:border-gold-500 text-sm leading-relaxed"
                         required
                       />

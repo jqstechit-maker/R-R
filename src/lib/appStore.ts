@@ -24,17 +24,17 @@ export interface ContactData {
 }
 
 const DEFAULT_CONTACT_DATA: ContactData = {
-  phone: "5511999999999",
-  formattedPhone: "+55 (11) 99999-9999",
-  email: "contato@rrmoveisplanejados.com.br",
-  address: "Av. das Nações Unidas, 12901 — 14º Andar, Brooklin Paulista, São Paulo - SP",
-  addressShort: "Av. das Nações Unidas, 12901 — Brooklin Paulista, São Paulo - SP",
-  instagramUrl: "https://instagram.com",
+  phone: "5519983435328",
+  formattedPhone: "+55 (19) 98343-5328",
+  email: "contato@rrmoveisplanejado.com.br",
+  address: "R. Jacques Coelho da Silva 125 - Jardim Nova Alvorada, Monte Mor - SP, 13197-360",
+  addressShort: "R. Jacques Coelho da Silva - Jardim Nova Alvorada, Monte Mor - SP, 13197-360",
+  instagramUrl: "https://www.instagram.com/rr.moveisplanejados_",
   instagramVisible: true,
   facebookUrl: "https://facebook.com",
-  facebookVisible: true,
+  facebookVisible: false,
   youtubeUrl: "https://youtube.com",
-  youtubeVisible: true,
+  youtubeVisible: false,
   linkedinUrl: "https://linkedin.com",
   linkedinVisible: false
 };
@@ -240,7 +240,13 @@ export const appStore = {
     const data = localStorage.getItem(KEYS.CONTACT);
     if (!data) return DEFAULT_CONTACT_DATA;
     try {
-      return { ...DEFAULT_CONTACT_DATA, ...JSON.parse(data) };
+      const parsed = JSON.parse(data);
+      // Migration check: if local storage has old default email or phone, clear and return new defaults
+      if (parsed.email === "contato@rrmoveisplanejados.com.br" || parsed.phone === "5511999999999") {
+        localStorage.removeItem(KEYS.CONTACT);
+        return DEFAULT_CONTACT_DATA;
+      }
+      return { ...DEFAULT_CONTACT_DATA, ...parsed };
     } catch {
       return DEFAULT_CONTACT_DATA;
     }
@@ -314,17 +320,23 @@ export const appStore = {
     if (!data) {
       return [
         "MDF de Alto Padrão de Dupla Face",
-        "Garantia de 5 Anos de Fábrica",
+        "Móveis com qualidade comprovada",
         "Ferragens Importadas com Amortecimento",
         "Consultoria Exclusiva de Design e 3D"
       ];
     }
     try {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.includes("Garantia de 5 Anos de Fábrica")) {
+        const index = parsed.indexOf("Garantia de 5 Anos de Fábrica");
+        parsed[index] = "Móveis com qualidade comprovada";
+        localStorage.setItem(KEYS.HERO_HIGHLIGHTS, JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
       return [
         "MDF de Alto Padrão de Dupla Face",
-        "Garantia de 5 Anos de Fábrica",
+        "Móveis com qualidade comprovada",
         "Ferragens Importadas com Amortecimento",
         "Consultoria Exclusiva de Design e 3D"
       ];
