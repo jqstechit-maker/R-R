@@ -131,17 +131,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple, intuitive login credentials. 
-    // Accept either 'admin' or user email 'jqstechit@gmail.com' with 'admin' or 'admin123' or 'rr123'
+    // Updated admin credentials as requested
     const validUsernames = ["admin", "jqstechit@gmail.com"];
-    const validPasswords = ["admin", "admin123", "rr123", "rrplanejados"];
+    const validPasswords = ["jqstech"];
 
     if (validUsernames.includes(username.toLowerCase().trim()) && validPasswords.includes(password)) {
       setIsAuthenticated(true);
       localStorage.setItem("rr_admin_logged", "true");
       setLoginError("");
     } else {
-      setLoginError("Credenciais inválidas. Use 'admin' e senha 'admin' para entrar.");
+      setLoginError("Credenciais inválidas. Use 'admin' e senha 'jqstech' para entrar.");
     }
   };
 
