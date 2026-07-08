@@ -164,25 +164,7 @@ export default function Hero({ onNavigateToSection }: HeroProps) {
                 </div>
               )}
 
-              {/* Floating stats card */}
-              <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center justify-between z-20">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-lg bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-sans font-bold text-sm tracking-wide">
-                      MDF Naval Certificado
-                    </h4>
-                    <p className="text-xs text-white/60 font-light">
-                      Resistência à umidade e cupins
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-gold-500 bg-gold-500/10 px-2 py-1 rounded font-bold uppercase tracking-widest">
-                  ALTO PADRÃO
-                </span>
-              </div>
+
             </div>
 
             {/* Decorative brass ring frame */}
