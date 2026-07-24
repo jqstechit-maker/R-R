@@ -383,7 +383,13 @@ export const appStore = {
   },
 
   getHeroTitle2(): string {
-    return localStorage.getItem(KEYS.HERO_TITLE2) || "Marcenaria que Dura.";
+    const val = localStorage.getItem(KEYS.HERO_TITLE2);
+    if (!val || val === "Marcenaria que Dura." || val === "Marcenaria que **Dura**." || val === "Moveis que Dura" || val === "Móveis que Dura") {
+      const newTitle = "Transformamos ambientes em espaços únicos.";
+      localStorage.setItem(KEYS.HERO_TITLE2, newTitle);
+      return newTitle;
+    }
+    return val;
   },
 
   saveHeroTitle2(val: string) {

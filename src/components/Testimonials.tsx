@@ -81,8 +81,8 @@ export default function Testimonials() {
             <span className="text-xs font-mono font-semibold uppercase tracking-wider">MDF de Alta Densidade</span>
           </div>
           <div className="flex items-center space-x-2 text-slate-700">
-            <span className="font-display font-black text-2xl tracking-wider">5 Anos</span>
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider">Garantia Integrada</span>
+            <span className="font-display font-black text-2xl tracking-wider">Garantia</span>
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider">de Fábrica Exclusiva</span>
           </div>
           <div className="flex items-center space-x-2 text-slate-700">
             <span className="font-display font-black text-2xl tracking-wider">+500</span>
