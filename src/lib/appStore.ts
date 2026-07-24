@@ -201,6 +201,86 @@ export function applyHighlightColors(colors: ColorPalette["colors"]) {
 }
 
 export const appStore = {
+  // Sync helper to send data to backend MySQL database
+  async syncKeyToBackend(key: string, value: any) {
+    try {
+      await fetch("/api/site-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value })
+      });
+    } catch (err) {
+      console.warn(`[appStore] Aviso ao sincronizar '${key}' com MySQL:`, err);
+    }
+  },
+
+  // Initialize and load all settings from backend MySQL on app load
+  async initSync() {
+    try {
+      const res = await fetch("/api/site-settings");
+      if (res.ok) {
+        const data = await res.json();
+        const settings = data.settings || {};
+        let updated = false;
+
+        // Sync keys from backend MySQL into localStorage if present
+        for (const [key, val] of Object.entries(settings)) {
+          const serialized = typeof val === "string" ? val : JSON.stringify(val);
+          if (serialized && localStorage.getItem(key) !== serialized) {
+            localStorage.setItem(key, serialized);
+            updated = true;
+          }
+        }
+
+        // Apply dynamic colors if palette was loaded
+        if (settings[KEYS.PALETTE]) {
+          try {
+            const palette = typeof settings[KEYS.PALETTE] === "string" 
+              ? JSON.parse(settings[KEYS.PALETTE]) 
+              : settings[KEYS.PALETTE];
+            applyHighlightColors(palette);
+          } catch {}
+        }
+
+        if (updated) {
+          this.notifyUpdate();
+        }
+
+        // If backend database was empty for primary settings, seed backend with defaults
+        if (Object.keys(settings).length === 0) {
+          this.seedBackendDefaults();
+        }
+
+        return data.dbStatus;
+      }
+    } catch (err) {
+      console.warn("[appStore] Erro ao sincronizar configurações do MySQL backend:", err);
+    }
+    return null;
+  },
+
+  async seedBackendDefaults() {
+    const allDefaults = {
+      [KEYS.SITE_NAME]: this.getSiteName(),
+      [KEYS.LOGO]: this.getLogo(),
+      [KEYS.CONTACT]: this.getContactData(),
+      [KEYS.PROJECTS]: this.getProjects(),
+      [KEYS.TESTIMONIALS]: this.getTestimonials(),
+      [KEYS.PALETTE]: this.getPalette(),
+      [KEYS.HERO_TITLE1]: this.getHeroTitle1(),
+      [KEYS.HERO_TITLE2]: this.getHeroTitle2(),
+      [KEYS.HERO_DESCRIPTION]: this.getHeroDescription(),
+      [KEYS.HERO_HIGHLIGHTS]: this.getHeroHighlights()
+    };
+    try {
+      await fetch("/api/site-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: allDefaults })
+      });
+    } catch {}
+  },
+
   getPalette(): ColorPalette["colors"] {
     const data = localStorage.getItem(KEYS.PALETTE);
     if (!data) return COLOR_PRESETS[0].colors;
@@ -215,6 +295,7 @@ export const appStore = {
     localStorage.setItem(KEYS.PALETTE, JSON.stringify(colors));
     applyHighlightColors(colors);
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.PALETTE, colors);
   },
 
   getSiteName(): string {
@@ -224,6 +305,7 @@ export const appStore = {
   saveSiteName(name: string) {
     localStorage.setItem(KEYS.SITE_NAME, name);
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.SITE_NAME, name);
   },
 
   getLogo(): string {
@@ -234,6 +316,7 @@ export const appStore = {
   saveLogo(logoBase64: string) {
     localStorage.setItem(KEYS.LOGO, logoBase64);
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.LOGO, logoBase64);
   },
 
   getContactData(): ContactData {
@@ -241,7 +324,6 @@ export const appStore = {
     if (!data) return DEFAULT_CONTACT_DATA;
     try {
       const parsed = JSON.parse(data);
-      // Migration check: if local storage has old default email or phone, clear and return new defaults
       if (parsed.email === "contato@rrmoveisplanejados.com.br" || parsed.phone === "5511999999999") {
         localStorage.removeItem(KEYS.CONTACT);
         return DEFAULT_CONTACT_DATA;
@@ -255,6 +337,7 @@ export const appStore = {
   saveContactData(data: ContactData) {
     localStorage.setItem(KEYS.CONTACT, JSON.stringify(data));
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.CONTACT, data);
   },
 
   getProjects(): Project[] {
@@ -270,6 +353,7 @@ export const appStore = {
   saveProjects(projects: Project[]) {
     localStorage.setItem(KEYS.PROJECTS, JSON.stringify(projects));
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.PROJECTS, projects);
   },
 
   getTestimonials(): Testimonial[] {
@@ -285,6 +369,7 @@ export const appStore = {
   saveTestimonials(testimonials: Testimonial[]) {
     localStorage.setItem(KEYS.TESTIMONIALS, JSON.stringify(testimonials));
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.TESTIMONIALS, testimonials);
   },
 
   getHeroTitle1(): string {
@@ -294,6 +379,7 @@ export const appStore = {
   saveHeroTitle1(val: string) {
     localStorage.setItem(KEYS.HERO_TITLE1, val);
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.HERO_TITLE1, val);
   },
 
   getHeroTitle2(): string {
@@ -303,6 +389,7 @@ export const appStore = {
   saveHeroTitle2(val: string) {
     localStorage.setItem(KEYS.HERO_TITLE2, val);
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.HERO_TITLE2, val);
   },
 
   getHeroDescription(): string {
@@ -313,6 +400,7 @@ export const appStore = {
   saveHeroDescription(val: string) {
     localStorage.setItem(KEYS.HERO_DESCRIPTION, val);
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.HERO_DESCRIPTION, val);
   },
 
   getHeroHighlights(): string[] {
@@ -346,6 +434,7 @@ export const appStore = {
   saveHeroHighlights(val: string[]) {
     localStorage.setItem(KEYS.HERO_HIGHLIGHTS, JSON.stringify(val));
     this.notifyUpdate();
+    this.syncKeyToBackend(KEYS.HERO_HIGHLIGHTS, val);
   },
 
   // Notify components about any data updates
@@ -360,3 +449,4 @@ export const appStore = {
     };
   }
 };
+

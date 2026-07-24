@@ -13,9 +13,10 @@ export default function App() {
   const [activeSection, setActiveSection] = useState("inicio");
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
-  // Apply saved dynamic highlight colors on initial load
+  // Apply saved dynamic highlight colors and sync with MySQL backend on initial load
   useEffect(() => {
     applyHighlightColors(appStore.getPalette());
+    appStore.initSync();
   }, []);
 
   // Handle smooth scroll-to-section

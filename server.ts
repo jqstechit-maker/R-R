@@ -3,13 +3,22 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import {
+  initDb,
+  getAllSettings,
+  saveSetting,
+  saveSettingsBatch,
+  saveContactMessageToDb,
+  getDbStatus,
+  updateMysqlConfig
+} from "./server/db.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 // Lazy-initialize Gemini client
 let aiClient: GoogleGenAI | null = null;
@@ -45,8 +54,54 @@ interface ContactMessage {
 
 const contactMessages: ContactMessage[] = [];
 
+// API: MySQL Database status endpoint
+app.get("/api/mysql-status", async (req, res) => {
+  const status = await getDbStatus();
+  return res.json(status);
+});
+
+// API: Update MySQL Connection configuration dynamically
+app.post("/api/mysql-config", async (req, res) => {
+  const { host, user, password, database, port } = req.body;
+  const result = await updateMysqlConfig({
+    ...(host && { host }),
+    ...(user && { user }),
+    ...(password && { password }),
+    ...(database && { database }),
+    ...(port && { port: Number(port) })
+  });
+  return res.json(result);
+});
+
+// API: Get all site settings from MySQL
+app.get("/api/site-settings", async (req, res) => {
+  const settings = await getAllSettings();
+  const dbStatus = await getDbStatus();
+  return res.json({
+    settings,
+    dbStatus
+  });
+});
+
+// API: Save single or batch site settings to MySQL
+app.post("/api/site-settings", async (req, res) => {
+  const { key, value, settings } = req.body;
+
+  if (settings && typeof settings === "object") {
+    const success = await saveSettingsBatch(settings);
+    return res.json({ success, message: "Configurações salvas em lote no MySQL!" });
+  }
+
+  if (!key) {
+    return res.status(400).json({ error: "Chave 'key' de configuração é obrigatória." });
+  }
+
+  const success = await saveSetting(key, value);
+  return res.json({ success, message: `Configuração '${key}' salva no MySQL!` });
+});
+
 // API: Handle contact form submissions
-app.post("/api/contato", (req, res) => {
+app.post("/api/contato", async (req, res) => {
   const { name, email, phone, interest, message } = req.body;
   
   if (!name || !email || !phone) {
@@ -64,6 +119,8 @@ app.post("/api/contato", (req, res) => {
   };
 
   contactMessages.push(newMessage);
+  await saveContactMessageToDb(newMessage);
+
   console.log("Novo contato recebido:", newMessage);
 
   return res.json({
@@ -292,6 +349,9 @@ app.post("/api/gerar-conceito-3d", async (req, res) => {
 
 // Setup Vite Dev Server / Static files
 async function startServer() {
+  // Initialize MySQL DB connection
+  await initDb();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

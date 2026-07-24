@@ -4,7 +4,8 @@ import { Project, Testimonial, ColorPalette } from "../types";
 import { 
   Lock, Settings, Save, Phone, MapPin, Mail, 
   Trash2, Plus, Edit2, X, Check, Image as ImageIcon,
-  LogOut, Star, FileText, Compass, AlertCircle, Palette, Sparkles
+  LogOut, Star, FileText, Compass, AlertCircle, Palette, Sparkles,
+  Database, RefreshCw, CheckCircle2, Server
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -18,7 +19,94 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [loginError, setLoginError] = useState("");
 
   // Tabs for the admin panel
-  const [activeTab, setActiveTab] = useState<"contato" | "identidade" | "projetos" | "comentarios" | "hero">("contato");
+  const [activeTab, setActiveTab] = useState<"contato" | "identidade" | "projetos" | "comentarios" | "hero" | "mysql">("contato");
+
+  // MySQL Database State
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    host: string;
+    user: string;
+    database: string;
+    port: number;
+    error?: string | null;
+    hint?: string | null;
+  } | null>(null);
+
+  const [mysqlHost, setMysqlHost] = useState("localhost");
+  const [mysqlUser, setMysqlUser] = useState("u609303672_rrplanejado");
+  const [mysqlDatabase, setMysqlDatabase] = useState("u609303672_rrplanejado");
+  const [mysqlPassword, setMysqlPassword] = useState("Gavioes@2026");
+  const [mysqlPort, setMysqlPort] = useState("3306");
+  const [isSavingMysql, setIsSavingMysql] = useState(false);
+  const [mysqlSuccessMsg, setMysqlSuccessMsg] = useState("");
+  const [mysqlErrMsg, setMysqlErrMsg] = useState("");
+
+  const fetchMysqlStatus = async () => {
+    try {
+      const res = await fetch("/api/mysql-status");
+      if (res.ok) {
+        const data = await res.json();
+        setDbStatus(data);
+        if (data.host) setMysqlHost(data.host);
+        if (data.user) setMysqlUser(data.user);
+        if (data.database) setMysqlDatabase(data.database);
+        if (data.port) setMysqlPort(String(data.port));
+      }
+    } catch (err) {
+      console.warn("Erro ao buscar status do MySQL:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMysqlStatus();
+  }, []);
+
+  const handleSaveMysqlConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingMysql(true);
+    setMysqlSuccessMsg("");
+    setMysqlErrMsg("");
+    try {
+      const res = await fetch("/api/mysql-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: mysqlHost,
+          user: mysqlUser,
+          password: mysqlPassword,
+          database: mysqlDatabase,
+          port: Number(mysqlPort)
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        setMysqlSuccessMsg("Conexão MySQL Hostinger atualizada e testada com sucesso!");
+        await appStore.seedBackendDefaults();
+        await fetchMysqlStatus();
+      } else {
+        setMysqlErrMsg(result.message || "Não foi possível conectar com as credenciais fornecidas.");
+      }
+    } catch (err: any) {
+      setMysqlErrMsg("Erro de comunicação: " + err.message);
+    } finally {
+      setIsSavingMysql(false);
+    }
+  };
+
+  const handleForceSyncNow = async () => {
+    setIsSavingMysql(true);
+    setMysqlSuccessMsg("");
+    setMysqlErrMsg("");
+    try {
+      await appStore.seedBackendDefaults();
+      await fetchMysqlStatus();
+      setMysqlSuccessMsg("Todas as informações do site (Títulos, Cores, Imagens, Contatos, Comentários) foram salvas no Banco MySQL!");
+    } catch (err: any) {
+      setMysqlErrMsg("Erro na sincronização: " + err.message);
+    } finally {
+      setIsSavingMysql(false);
+    }
+  };
 
   // Hero section customization states
   const [heroTitle1, setHeroTitle1] = useState(appStore.getHeroTitle1());
@@ -624,6 +712,18 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 >
                   <FileText className="w-4 h-4 shrink-0" />
                   <span>Comentários</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab("mysql"); setIsEditingProject(false); setIsEditingTestimonial(false); fetchMysqlStatus(); }}
+                  className={`w-full text-left font-sans text-xs font-bold uppercase tracking-wider p-3 rounded-xl flex items-center space-x-2.5 transition-all cursor-pointer ${
+                    activeTab === "mysql" 
+                      ? "bg-slate-900 text-gold-500 border-l-2 border-gold-500" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-900/50"
+                  }`}
+                >
+                  <Database className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>Banco MySQL Hostinger</span>
                 </button>
               </div>
 
@@ -1510,6 +1610,171 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       </form>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* TAB 6: BANCO DE DADOS MYSQL HOSTINGER */}
+              {activeTab === "mysql" && (
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <Database className="w-5 h-5 text-emerald-400" />
+                      <h4 className="font-display text-lg font-bold text-white">Sincronização MySQL Hostinger</h4>
+                    </div>
+                    <p className="font-sans text-xs text-slate-400 mt-1">
+                      Todas as alterações feitas no site (títulos, textos, cores, fotos de projetos, mensagens de contato) são sincronizadas em tempo real no seu banco de dados Hostinger.
+                    </p>
+                  </div>
+
+                  {/* Status Banner */}
+                  <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                    dbStatus?.connected 
+                      ? "bg-emerald-950/30 border-emerald-800/50 text-emerald-300"
+                      : "bg-amber-950/30 border-amber-800/50 text-amber-300"
+                  }`}>
+                    <div className="flex items-start space-x-3">
+                      <div className={`p-2 rounded-xl mt-0.5 ${dbStatus?.connected ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
+                        {dbStatus?.connected ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-sm">
+                          {dbStatus?.connected ? "Conectado ao MySQL Hostinger" : "Ativo em Modo de Cache de Segurança"}
+                        </h5>
+                        <p className="text-xs opacity-80 mt-0.5 font-mono">
+                          Banco: <span className="font-bold">{dbStatus?.database || mysqlDatabase}</span> | Usuário: <span className="font-bold">{dbStatus?.user || mysqlUser}</span>
+                        </p>
+                        {dbStatus?.error && (
+                          <p className="text-[11px] text-amber-200 mt-1.5 bg-amber-950/50 p-2 rounded-lg font-mono">
+                            Aviso: {dbStatus.error}
+                          </p>
+                        )}
+                        {dbStatus?.hint && (
+                          <p className="text-[11px] text-amber-300/90 mt-1 italic">
+                            {dbStatus.hint}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleForceSyncNow}
+                      disabled={isSavingMysql}
+                      className="shrink-0 bg-slate-800 hover:bg-slate-700 text-white font-sans font-bold text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-2 border border-slate-700"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSavingMysql ? "animate-spin text-gold-500" : ""}`} />
+                      <span>Sincronizar Agora</span>
+                    </button>
+                  </div>
+
+                  {mysqlSuccessMsg && (
+                    <div className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
+                      <Check className="w-4 h-4" />
+                      {mysqlSuccessMsg}
+                    </div>
+                  )}
+
+                  {mysqlErrMsg && (
+                    <div className="p-3 bg-red-950/40 border border-red-800/50 rounded-xl text-red-400 text-xs font-semibold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      {mysqlErrMsg}
+                    </div>
+                  )}
+
+                  {/* Credentials form */}
+                  <form onSubmit={handleSaveMysqlConfig} className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                    <h5 className="font-display text-sm font-bold text-white flex items-center gap-2">
+                      <Server className="w-4 h-4 text-gold-500" />
+                      Credenciais do Banco de Dados Hostinger
+                    </h5>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          Nome do Banco de Dados (Database)
+                        </label>
+                        <input
+                          type="text"
+                          value={mysqlDatabase}
+                          onChange={(e) => setMysqlDatabase(e.target.value)}
+                          placeholder="u609303672_rrplanejado"
+                          className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3 focus:outline-none focus:border-gold-500 text-xs font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          Nome de Usuário (User)
+                        </label>
+                        <input
+                          type="text"
+                          value={mysqlUser}
+                          onChange={(e) => setMysqlUser(e.target.value)}
+                          placeholder="u609303672_rrplanejado"
+                          className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3 focus:outline-none focus:border-gold-500 text-xs font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                          Senha do MySQL (Password)
+                        </label>
+                        <input
+                          type="password"
+                          value={mysqlPassword}
+                          onChange={(e) => setMysqlPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3 focus:outline-none focus:border-gold-500 text-xs font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            Servidor (Host)
+                          </label>
+                          <input
+                            type="text"
+                            value={mysqlHost}
+                            onChange={(e) => setMysqlHost(e.target.value)}
+                            placeholder="localhost ou IP/Host da Hostinger"
+                            className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3 focus:outline-none focus:border-gold-500 text-xs font-mono"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            Porta
+                          </label>
+                          <input
+                            type="text"
+                            value={mysqlPort}
+                            onChange={(e) => setMysqlPort(e.target.value)}
+                            placeholder="3306"
+                            className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3 focus:outline-none focus:border-gold-500 text-xs font-mono"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500 font-sans">
+                        Tabelas no MySQL: <code className="text-gold-500">site_settings</code> e <code className="text-gold-500">contact_messages</code>
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={isSavingMysql}
+                        className="bg-gold-500 hover:bg-gold-600 text-slate-950 font-sans font-bold text-xs uppercase tracking-wider py-3 px-6 rounded-xl transition-all cursor-pointer shadow-lg shadow-gold-500/10 flex items-center space-x-2"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>{isSavingMysql ? "Salvando..." : "Salvar & Testar Conexão"}</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
               )}
 
